@@ -20,7 +20,7 @@ const CAMERA_RETRY_MS = 5000;
 /** Detection checks per second. */
 const DETECTION_FPS = 10;
 /** How often to look for a cup / bottle while a hand is near the face. */
-const DRINK_SCAN_MS = 200;
+const DRINK_SCAN_MS = 400;
 
 export interface FrameReport {
   detection: Detection;

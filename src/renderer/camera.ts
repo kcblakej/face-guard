@@ -1,16 +1,27 @@
 import type { FrameInput } from './detector';
 
 export async function openCamera(deviceId: string): Promise<MediaStream> {
-  return navigator.mediaDevices.getUserMedia({
-    audio: false,
-    video: {
-      deviceId: deviceId ? { exact: deviceId } : undefined,
-      facingMode: deviceId ? undefined : 'user',
-      width: { ideal: 640 },
-      height: { ideal: 480 },
-      frameRate: { ideal: 30 },
-    },
-  });
+  const request = (id: string) =>
+    navigator.mediaDevices.getUserMedia({
+      audio: false,
+      video: {
+        deviceId: id ? { exact: id } : undefined,
+        facingMode: id ? undefined : 'user',
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+        frameRate: { ideal: 30 },
+      },
+    });
+  try {
+    return await request(deviceId);
+  } catch (err) {
+    // A saved camera id goes stale when the camera is unplugged or the capture backend changes
+    // (DirectShow and Media Foundation assign different ids); fall back to the default camera.
+    const name = (err as { name?: string })?.name;
+    if (!deviceId || (name !== 'OverconstrainedError' && name !== 'NotFoundError')) throw err;
+    console.warn('[face-guard] saved camera not found, using the default camera', err);
+    return request('');
+  }
 }
 
 export function stopStream(stream: MediaStream | null): void {
