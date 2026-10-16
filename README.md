@@ -8,6 +8,70 @@ If a touch lasts longer than **2 seconds**, you get a notification. Everything r
 
 ## How it works
 
+### Application flow
+
+```mermaid
+flowchart TD
+    subgraph shell["Electron main process (desktop only)"]
+        tray["Tray menu<br/>pause / resume / quit"]
+        power["powerMonitor<br/>lock-screen / unlock-screen"]
+        toast["Native toast or<br/>always-on-top popup"]
+        countdown["Countdown window<br/>(Cancel / Esc if allowed)"]
+        act["shutdown /l<br/>or LockWorkStation"]
+    end
+
+    subgraph renderer["Renderer: Monitor loop (src/renderer/monitor.ts)"]
+        start(["Start / Resume"])
+        load["Load MediaPipe models<br/>Face + Hand Landmarker, EfficientDet-Lite0"]
+        cam["Open camera<br/>MediaStreamTrackProcessor or video fallback"]
+        retry["Retry in 5 s"]
+        tick["Grab frame (10 fps, Worker-driven ticker)"]
+        detect["Detect face (478 pts) + hands (21 pts x2)"]
+        faceQ{"Face visible?"}
+        memory["FaceMemory<br/>reuse last outline up to 10 s"]
+        nearQ{"Hand near face?<br/>(Ignore drinking on)"}
+        drink["Drink scan, max 5x/s<br/>excuse the holding hand for 4 s"]
+        evaluate["evaluateTouch<br/>fingertips / palm inside face oval + margin<br/>depth filter: palm size vs face size"]
+        tracker{"TouchTracker<br/>400 ms flicker grace"}
+        away["State: away<br/>(no face for 3 s)"]
+    end
+
+    subgraph react["Alert handling (src/renderer/main.ts)"]
+        alertEv["Alert event<br/>first at 2 s, then every repeat"]
+        stats["Stats<br/>today + 7-day history"]
+        notify["In-app banner + chime"]
+        platformQ{"Running in Electron?"}
+        webNote["Web Notification<br/>via service worker"]
+        strikeQ{"Sign-out enabled?<br/>StrikeCounter: N strikes in M min"}
+    end
+
+    start --> load --> cam
+    cam -- "error / disconnected" --> retry --> cam
+    cam --> tick --> detect --> faceQ
+    faceQ -- "yes" --> nearQ
+    faceQ -- "no, hand covering it" --> memory --> nearQ
+    faceQ -. "no face" .-> away
+    nearQ -- "yes" --> drink --> evaluate
+    nearQ -- "no" --> evaluate
+    evaluate --> tracker
+    tracker -- "not touching / under threshold" --> tick
+    tracker -- "touch ended" --> stats
+    tracker -- "threshold reached" --> alertEv
+
+    alertEv --> stats
+    alertEv --> notify --> platformQ
+    platformQ -- "yes: fg:alert IPC" --> toast
+    platformQ -- "no: PWA / browser" --> webNote
+    alertEv --> strikeQ
+    strikeQ -- "limit reached: fg:penalty IPC" --> countdown --> act
+    strikeQ -- "under limit" --> tick
+
+    tray -- "fg:command" --> start
+    power -- "pause on lock, resume on unlock" --> start
+```
+
+### Detection pipeline
+
 ```
 camera ──► frame source ──► MediaPipe (WASM + WebGL) ──► touch rules ──► tracker ──► alert
             │                  ├─ Face Landmarker (478 pts)   │               │
