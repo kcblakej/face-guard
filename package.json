@@ -1,0 +1,32 @@
+{
+  "name": "face-guard",
+  "productName": "Face Guard",
+  "version": "1.0.0",
+  "description": "Watches your webcam and warns you when you touch your face. Runs 100% on-device.",
+  "author": "Blake Jordan",
+  "license": "MIT",
+  "private": true,
+  "main": "dist/electron/main.cjs",
+  "scripts": {
+    "postinstall": "node scripts/fetch-models.mjs",
+    "fetch-models": "node scripts/fetch-models.mjs",
+    "build": "node scripts/build.mjs",
+    "start": "npm run build && electron .",
+    "dev:web": "node scripts/build.mjs --serve",
+    "test": "tsx --test \"tests/**/*.test.ts\"",
+    "test:smoke": "node scripts/build.mjs --mock && node tests/smoke.mjs",
+    "typecheck": "tsc --noEmit",
+    "dist": "node scripts/build.mjs --release && electron-builder --win nsis --config electron-builder.config.cjs --publish never",
+    "icons": "python scripts/make-icons.py",
+    "dist:store": "node scripts/build.mjs --release && electron-builder --win appx --config electron-builder.config.cjs --publish never"
+  },
+  "devDependencies": {
+    "@mediapipe/tasks-vision": "^0.10.21",
+    "@types/node": "^22.10.0",
+    "electron": "^44.0.0",
+    "electron-builder": "^26.0.0",
+    "esbuild": "^0.27.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.9.0"
+  }
+}

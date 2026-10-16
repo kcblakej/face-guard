@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'unsafe-eval' blob:; worker-src 'self' blob:; connect-src 'self' blob: data: https://storage.googleapis.com; img-src 'self' data: blob:; media-src 'self' blob: mediastream:; style-src 'self' 'unsafe-inline'"
+    />
+    <title>Face Guard</title>
+    <meta name="description" content="Warns you when you touch your face. Runs entirely on your device." />
+    <meta name="theme-color" content="#0b1220" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" href="icons/icon-192.png" />
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Face Guard" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <img src="icons/icon-192.png" alt="" width="28" height="28" />
+        <span>Face Guard</span>
+      </div>
+      <div id="status" class="pill" data-state="idle"><span class="dot"></span><span id="status-text">Not watching</span></div>
+      <button id="toggle" class="btn primary" type="button">Start</button>
+    </header>
+
+    <main class="layout">
+      <section class="card stage">
+        <div class="video-wrap" id="video-wrap">
+          <video id="video" playsinline muted autoplay></video>
+          <canvas id="overlay"></canvas>
+
+          <div class="stage-empty" id="stage-empty">
+            <div class="empty-inner">
+              <h1>Keep your hands off your face.</h1>
+              <p>
+                Face Guard watches your webcam and nudges you when a touch lasts longer than
+                <strong id="empty-threshold">2</strong>&nbsp;seconds. Video never leaves this device.
+              </p>
+              <button id="start-big" class="btn primary lg" type="button">Start watching</button>
+              <p class="err" id="error-text" hidden></p>
+            </div>
+          </div>
+
+          <div class="preview-off" id="preview-off" hidden>
+            <p>Preview hidden — still watching.</p>
+          </div>
+
+          <div class="ring" id="ring" hidden>
+            <svg viewBox="0 0 48 48" aria-hidden="true">
+              <circle cx="24" cy="24" r="20" class="track" />
+              <circle cx="24" cy="24" r="20" class="bar" id="ring-bar" />
+            </svg>
+            <span id="ring-text">0.0s</span>
+          </div>
+
+          <div class="banner" id="banner" role="alert" hidden>
+            <strong>Hands off your face!</strong>
+            <span id="banner-sub">Touching for 2s</span>
+          </div>
+        </div>
+        <div class="stage-foot">
+          <span id="debug">—</span>
+        </div>
+      </section>
+
+      <aside class="side">
+        <section class="card">
+          <h2>Today</h2>
+          <div class="stats">
+            <div><span class="num" id="stat-touches">0</span><span class="lbl">touches</span></div>
+            <div><span class="num" id="stat-alerts">0</span><span class="lbl">alerts</span></div>
+            <div><span class="num" id="stat-time">0s</span><span class="lbl">touching</span></div>
+          </div>
+          <p class="since">Hands-off streak: <strong id="stat-since">—</strong></p>
+          <p class="strikes" id="strikes" hidden></p>
+          <div class="bars" id="bars" aria-label="Touches over the last 7 days"></div>
+        </section>
+
+        <section class="card">
+          <h2>Pause</h2>
+          <p class="hint">Eating, on a call, adjusting glasses? Pausing turns the camera off.</p>
+          <div class="row wrap">
+            <button class="btn" type="button" data-pause="15">15 min</button>
+            <button class="btn" type="button" data-pause="60">1 hour</button>
+            <button class="btn" type="button" data-pause="0">Until I resume</button>
+          </div>
+        </section>
+
+        <details class="card settings" id="settings">
+          <summary><h2>Settings</h2></summary>
+
+          <label class="field">
+            <span>Alert after <output data-for="thresholdSec"></output></span>
+            <input type="range" data-key="thresholdSec" min="0.5" max="10" step="0.5" />
+          </label>
+
+          <label class="field">
+            <span>Repeat while touching <output data-for="repeatSec"></output></span>
+            <input type="range" data-key="repeatSec" min="0" max="60" step="5" />
+          </label>
+
+          <label class="field">
+            <span>Face zone margin <output data-for="marginPct"></output></span>
+            <input type="range" data-key="marginPct" min="0" max="30" step="1" />
+          </label>
+
+          <label class="check">
+            <input type="checkbox" data-key="depthFilter" />
+            <span>Ignore hands held in front of the camera<small>Uses hand size vs. face size to skip waves and reaches.</small></span>
+          </label>
+
+          <label class="field" id="ratio-field">
+            <span>Max hand/face size <output data-for="maxHandFaceRatio"></output></span>
+            <input type="range" data-key="maxHandFaceRatio" min="0.8" max="2.5" step="0.05" />
+          </label>
+
+          <label class="check">
+            <input type="checkbox" data-key="ignoreDrinking" />
+            <span>Ignore drinking<small>A hand holding a cup, mug or bottle to your mouth doesn't count.</small><small class="status" id="drink-status"></small></span>
+          </label>
+
+          <label class="field" data-electron-only>
+            <span>Alert style</span>
+            <select data-key="alertStyle">
+              <option value="toast">Windows notification</option>
+              <option value="popup">Always-on-top popup</option>
+            </select>
+          </label>
+
+          <label class="check">
+            <input type="checkbox" data-key="sound" />
+            <span>Play a sound</span>
+          </label>
+
+          <label class="check">
+            <input type="checkbox" data-key="useGpu" />
+            <span>Use GPU<small>Faster. Turn off if detection stops while the window is hidden.</small></span>
+          </label>
+
+          <label class="field">
+            <span>Camera</span>
+            <select data-key="cameraId" id="camera-select"><option value="">Default camera</option></select>
+          </label>
+
+          <label class="check">
+            <input type="checkbox" data-key="showPreview" />
+            <span>Show camera preview</span>
+          </label>
+
+          <label class="check">
+            <input type="checkbox" data-key="showLandmarks" />
+            <span>Draw face zone and hand tracking</span>
+          </label>
+
+          <div class="group" data-electron-only>
+            <h3>Consequences</h3>
+            <label class="check">
+              <input type="checkbox" data-key="penaltyEnabled" />
+              <span>Sign me out after repeated alerts<small>Every alert is a strike, including repeats while you keep touching (see Repeat while touching).</small></span>
+            </label>
+            <div id="penalty-fields">
+              <label class="field">
+                <span>Action</span>
+                <select data-key="penaltyAction">
+                  <option value="signout">Sign out of Windows</option>
+                  <option value="lock">Lock the PC</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>After <output data-for="penaltyStrikes"></output></span>
+                <input type="range" data-key="penaltyStrikes" min="2" max="10" step="1" />
+              </label>
+              <label class="field">
+                <span>Within <output data-for="penaltyWindowMin"></output></span>
+                <input type="range" data-key="penaltyWindowMin" min="1" max="30" step="1" />
+              </label>
+              <label class="field">
+                <span>Warning first <output data-for="penaltyGraceSec"></output></span>
+                <input type="range" data-key="penaltyGraceSec" min="0" max="60" step="5" />
+              </label>
+              <label class="check">
+                <input type="checkbox" data-key="penaltyAllowCancel" />
+                <span>Allow cancelling the warning</span>
+              </label>
+            </div>
+          </div>
+
+          <label class="check" data-electron-only id="login-row">
+            <input type="checkbox" id="open-at-login" />
+            <span>Start with Windows<small>Launches minimized to the tray.</small></span>
+          </label>
+          <div class="field" id="store-startup-row" hidden>
+            <span>Start with Windows</span>
+            <button class="btn" type="button" id="open-startup-settings">Open Windows startup settings</button>
+          </div>
+
+          <div class="row wrap">
+            <button class="btn ghost" type="button" id="reset-settings">Reset settings</button>
+            <button class="btn ghost" type="button" id="clear-stats">Clear stats</button>
+          </div>
+          <p class="hint" id="web-hint" data-web-only></p>
+
+          <div class="about">
+            <span id="about-version">Face Guard</span>
+            <span>·</span>
+            <a href="privacy.html" target="_blank" rel="noopener">Privacy</a>
+            <span data-electron-only>·</span>
+            <button class="linklike" type="button" id="uninstall" data-electron-only>Uninstall…</button>
+          </div>
+        </details>
+      </aside>
+    </main>
+
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

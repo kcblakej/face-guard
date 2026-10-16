@@ -1,0 +1,6 @@
+{
+  "_readme": "Replace these with the values from Partner Center: your app → Product management → Product identity. See docs/DISTRIBUTING.md.",
+  "identityName": "REPLACE.FaceGuard",
+  "publisher": "CN=REPLACE-WITH-PUBLISHER-ID",
+  "publisherDisplayName": "Blake Jordan"
+}

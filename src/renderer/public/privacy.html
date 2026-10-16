@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; img-src 'self' data:" />
+    <title>Face Guard — Privacy Policy</title>
+    <link rel="icon" href="icons/icon-192.png" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="doc">
+      <h1>Face Guard privacy policy</h1>
+      <p class="hint">Effective September 23, 2026</p>
+
+      <h2>The short version</h2>
+      <p>
+        Face Guard uses your webcam to notice when your hand touches your face. All video is processed on your own
+        device, in memory, and immediately discarded. No images, video, or face or hand data are ever saved, uploaded,
+        or shared. Face Guard has no accounts, no ads, no analytics and no tracking.
+      </p>
+
+      <h2>What Face Guard processes</h2>
+      <ul>
+        <li>
+          <strong>Camera frames.</strong> While Face Guard is watching, it reads frames from your camera about ten times a
+          second. It runs on-device machine-learning models on each frame to find face and hand positions, and cups or
+          bottles near your face. Frames are never written to disk or sent anywhere. The camera turns off when you pause
+          Face Guard, lock your PC, or quit the app.
+        </li>
+        <li>
+          <strong>Settings and daily statistics.</strong> Your preferences and simple counts (such as how many times you
+          touched your face each day) are stored locally on your device. They never leave it. Uninstalling Face Guard
+          can remove them.
+        </li>
+      </ul>
+
+      <h2>Network use</h2>
+      <p>
+        The installed app works fully offline. Face Guard only connects to the internet if one of its bundled
+        machine-learning model files is missing. In that case it downloads the file from Google's public MediaPipe model
+        storage (storage.googleapis.com). That request contains no personal data.
+      </p>
+
+      <h2>Permissions</h2>
+      <ul>
+        <li><strong>Camera:</strong> to detect face touches. Face Guard never requests your microphone.</li>
+        <li><strong>Notifications:</strong> to alert you.</li>
+        <li><strong>Start with Windows (optional):</strong> so it can keep watching after you sign in. You can turn this off at any time.</li>
+        <li>
+          <strong>Sign out / lock (optional, off by default):</strong> if you turn on <em>Consequences</em>, Face Guard can sign
+          you out of Windows or lock your PC after repeated alerts. It shows a countdown first.
+        </li>
+      </ul>
+
+      <h2>Children</h2>
+      <p>Face Guard does not collect personal information from anyone, including children.</p>
+
+      <h2>Changes</h2>
+      <p>If this policy changes, the updated version will be published with the app and on this page.</p>
+
+    </main>
+  </body>
+</html>

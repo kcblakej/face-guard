@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'" />
+    <title>Face Guard</title>
+    <link rel="stylesheet" href="countdown.css" />
+  </head>
+  <body>
+    <main class="card" role="alertdialog" aria-labelledby="headline" aria-describedby="reason">
+      <div class="ring"><span id="seconds">15</span></div>
+      <div class="text">
+        <h1 id="headline">Signing you out</h1>
+        <p id="reason"></p>
+        <p class="save">Save your work now.</p>
+        <button id="cancel" type="button" hidden>Cancel <kbd>Esc</kbd></button>
+      </div>
+    </main>
+    <script src="countdown.js"></script>
+  </body>
+</html>
